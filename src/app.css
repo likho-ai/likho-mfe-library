@@ -1,0 +1,9 @@
+/*
+ * This app's own classes. The shell provides the base styles; this file brings the theme values
+ * Tailwind needs (breakpoints, spacing, type scale), the design tokens, and the utilities this
+ * app uses. vite.config.ts scopes every rule under [data-mfe="library"] (the app's root element).
+ */
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+@import '@likho-ai/ui/tokens.css';
+@source '../node_modules/@likho-ai/ui/dist';

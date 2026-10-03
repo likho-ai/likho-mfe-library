@@ -1,0 +1,9 @@
+/* Standalone development only. In the shell, the shell's stylesheet provides the base styles. */
+@import 'tailwindcss/preflight' layer(base);
+
+html {
+  background: var(--likho-ground);
+  background-image: var(--likho-ground-image);
+  color: var(--likho-ink);
+  font-family: var(--font-sans);
+}
