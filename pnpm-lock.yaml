@@ -317,7 +317,7 @@ packages:
       react-dom: ^19.0.0
 
   '@likho-ai/web-sdk@https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz':
-    resolution: {tarball: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz}
+    resolution: {integrity: sha512-TOfM86JicNf8/M1zYW3kJjOFb9L3whg+JEclcbRSnKFWxhgQF7DGqL482pRENtfNO4EVeI6+aXp6PGL6zmlZ9A==, tarball: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz}
     version: 0.2.0
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
