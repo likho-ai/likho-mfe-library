@@ -198,7 +198,10 @@ describe('the recordings library', () => {
     page(client, '/recordings?upload=1');
     const section = await screen.findByRole('region', { name: 'From the dialer' });
     const list = await within(section).findByRole('list', { name: 'Calls asked for' });
-    expect(within(list).getByRole('link', { name: 'Fetched — open' })).toHaveAttribute('href', '/recordings/rec_9');
+    expect(within(list).getByRole('link', { name: 'Fetched — open' })).toHaveAttribute(
+      'href',
+      '/recordings/rec_9',
+    );
     expect(within(list).getByRole('alert')).toHaveTextContent('The dialer has no recording for this call.');
 
     const user = userEvent.setup();
