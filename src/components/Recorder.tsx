@@ -28,7 +28,19 @@ export function Recorder({ onRecorded }: { onRecorded: (file: File) => void }) {
   const chunks = useRef<Blob[]>([]);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => () => stop(true), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Leaving the page while recording: let the microphone go without handing over a file.
+  useEffect(
+    () => () => {
+      if (timer.current) clearInterval(timer.current);
+      const media = recorder.current;
+      if (media && media.state !== 'inactive') {
+        media.onstop = null;
+        media.stop();
+        media.stream.getTracks().forEach((track) => track.stop());
+      }
+    },
+    [],
+  );
 
   const start = async () => {
     setError(null);
