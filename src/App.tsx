@@ -16,6 +16,7 @@ import {
 import { Search } from 'lucide-react';
 import { useDeferredValue, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { DialerImport } from './components/DialerImport';
 import { UploadPanel } from './components/UploadPanel';
 import { CHIP, clock, languageName, when } from './lib/format';
 import './app.css';
@@ -144,7 +145,12 @@ export default function App() {
         </Button>
       </div>
 
-      {showUpload && <UploadPanel items={uploader.items} onFiles={uploader.add} onClear={uploader.clear} />}
+      {showUpload && (
+        <>
+          <UploadPanel items={uploader.items} onFiles={uploader.add} onClear={uploader.clear} />
+          <DialerImport />
+        </>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <div role="group" aria-label="Filter by status" className="flex flex-wrap gap-1">

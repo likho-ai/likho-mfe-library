@@ -159,6 +159,57 @@ describe('the recordings library', () => {
     await waitFor(() => expect(created).toEqual(['rec_1']));
   });
 
+  it('fetches a call from the dialer by its id and shows how it went', async () => {
+    const asked: string[] = [];
+    const row = (id: string, externalId: string, status: string, extra: Record<string, unknown> = {}) => ({
+      id,
+      source: 'ameyo',
+      externalId,
+      transcribe: true,
+      status,
+      recordingId: '',
+      reason: '',
+      code: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...extra,
+    });
+    const { client } = fakeApi({
+      Recordings: () => ({ recordings: { items: [], hasMore: false, endCursor: null } }),
+      RecordingCounts: () => ({ recordingCounts: counts }),
+      Imports: () => ({
+        imports: {
+          items: [
+            row('imp_2', 'd000-0a1b2c3d-vce-0002', 'failed', {
+              reason: 'The dialer has no recording for this call.',
+              code: 'no_recording',
+            }),
+            row('imp_1', 'd000-0a1b2c3d-vce-0001', 'completed', { recordingId: 'rec_9' }),
+          ],
+          hasMore: false,
+        },
+      }),
+      RequestImport: (v) => {
+        const input = v.input as { externalId: string };
+        asked.push(input.externalId);
+        return { requestImport: row('imp_3', input.externalId, 'requested') };
+      },
+    });
+    page(client, '/recordings?upload=1');
+    const section = await screen.findByRole('region', { name: 'From the dialer' });
+    const list = await within(section).findByRole('list', { name: 'Calls asked for' });
+    expect(within(list).getByRole('link', { name: 'Fetched — open' })).toHaveAttribute('href', '/recordings/rec_9');
+    expect(within(list).getByRole('alert')).toHaveTextContent('The dialer has no recording for this call.');
+
+    const user = userEvent.setup();
+    const button = within(section).getByRole('button', { name: 'Fetch call' });
+    expect(button).toBeDisabled();
+    await user.type(within(section).getByLabelText('Call id'), 'd000-0a1b2c3d-vce-0003');
+    await user.click(button);
+    await waitFor(() => expect(asked).toEqual(['d000-0a1b2c3d-vce-0003']));
+    await waitFor(() => expect(within(section).getByLabelText('Call id')).toHaveValue(''));
+  });
+
   it('says so when there is nothing yet', async () => {
     const { client } = fakeApi({
       Recordings: () => ({ recordings: { items: [], hasMore: false, endCursor: null } }),
