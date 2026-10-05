@@ -8,13 +8,16 @@ import {
   useCreateJob,
   useMe,
   useRecordingCounts,
+  useRecordingFacets,
   useRecordings,
   useUploader,
   useWorkspaceLive,
+  type FacetValue,
   type Recording,
+  type RecordingFilter,
   type RecordingStatus,
 } from '@likho-ai/web-sdk';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useDeferredValue, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { DialerImport } from './components/DialerImport';
@@ -31,6 +34,32 @@ const FILTERS: { key: Filter; label: string; statuses?: RecordingStatus[] }[] = 
   { key: 'ready', label: 'Ready', statuses: ['ready', 'uploading', 'uploaded'] },
   { key: 'failed', label: 'Failed', statuses: ['failed'] },
 ];
+
+const select =
+  'min-h-11 rounded-full border border-line bg-surface px-3 text-sm text-ink focus-visible:outline-accent';
+
+/** The campaign, agent and dates in the address, so a narrowed library can be shared. */
+function readNarrowing(params: URLSearchParams) {
+  return {
+    campaign: params.get('campaign') ?? '',
+    agent: params.get('agent') ?? '',
+    from: params.get('from') ?? '',
+    to: params.get('to') ?? '',
+  };
+}
+
+/** The filter the API takes from the address: a day's first and last moment on the call time. */
+export function factsFilter(n: ReturnType<typeof readNarrowing>): RecordingFilter {
+  const filter: RecordingFilter = {};
+  if (n.campaign) filter.campaign = n.campaign;
+  if (n.agent) filter.agent = n.agent;
+  if (n.from) filter.since = new Date(`${n.from}T00:00:00`).toISOString();
+  if (n.to) filter.until = new Date(`${n.to}T23:59:59.999`).toISOString();
+  return filter;
+}
+
+const attribute = (recording: Recording, key: string) =>
+  recording.attributes.find((a) => a.key === key)?.value ?? '';
 
 function Row({
   recording,
@@ -73,6 +102,13 @@ function Row({
         )}
       </td>
       <td className="py-3 pr-4 text-ink-2">
+        {attribute(recording, 'campaign') || '—'}
+        {attribute(recording, 'disposition') && (
+          <span className="block text-xs text-ink-3">{attribute(recording, 'disposition')}</span>
+        )}
+      </td>
+      <td className="py-3 pr-4 text-ink-2">{attribute(recording, 'agent') || '—'}</td>
+      <td className="py-3 pr-4 text-ink-2">
         {recording.detectedLanguage
           ? `${languageName(recording.detectedLanguage)} ${Math.round(recording.languageProbability * 100)}%`
           : '—'}
@@ -80,7 +116,9 @@ function Row({
       <td className="py-3 pr-4 font-mono text-sm tabular-nums text-ink-2">
         {recording.durationSeconds ? clock(recording.durationSeconds) : '—'}
       </td>
-      <td className="py-3 pr-4 text-ink-2">{when(recording.createdAt)}</td>
+      <td className="py-3 pr-4 text-ink-2" title={new Date(recording.callTime).toLocaleString()}>
+        {when(recording.callTime)}
+      </td>
       <td className="py-3 text-right">
         {recording.status === 'done' && (
           <Button size="sm" asChild>
@@ -107,20 +145,65 @@ function Row({
   );
 }
 
+/** A select over the values a fact takes, with counts. */
+function FactSelect({
+  label,
+  value,
+  values,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  values: FacetValue[] | undefined;
+  onChange: (value: string) => void;
+}) {
+  const known = values ?? [];
+  const options = value && !known.some((v) => v.value === value) ? [{ value, count: 0 }, ...known] : known;
+  if (!value && known.length === 0) return null; // nothing to narrow by yet
+  return (
+    <select className={select} value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+      <option value="">Any {label.toLowerCase()}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.value}
+          {option.count ? ` (${option.count})` : ''}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default function App() {
   const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const statuses = FILTERS.find((f) => f.key === filter)?.statuses;
-  const recordings = useRecordings({ status: statuses ?? null, search: deferredSearch || null });
+  const narrowing = readNarrowing(params);
+  const facts = factsFilter(narrowing);
+  const narrowed = Object.values(narrowing).some(Boolean);
+  const recordings = useRecordings({ ...facts, status: statuses ?? null, search: deferredSearch || null });
   const counts = useRecordingCounts();
+  const campaigns = useRecordingFacets('campaign');
+  const agents = useRecordingFacets(
+    'agent',
+    narrowing.campaign ? { campaign: narrowing.campaign } : undefined,
+  );
   const uploader = useUploader();
   const live = useWorkspaceLive();
   const me = useMe();
   // A viewer reads, plays and searches; the ways to change things are not shown to them.
   const canChange = me.data?.role !== 'viewer';
   const showUpload = canChange && params.get('upload') === '1';
+
+  const narrow = (next: Partial<typeof narrowing> & { upload?: string }) => {
+    const fresh = new URLSearchParams(params);
+    for (const [key, value] of Object.entries({ ...narrowing, ...next })) {
+      if (value) fresh.set(key, value);
+      else fresh.delete(key);
+    }
+    setParams(fresh);
+  };
 
   const items = recordings.data?.pages.flatMap((page) => page.items) ?? [];
   const total = counts.data ? Object.values(counts.data).reduce((a, b) => a + b, 0) : null;
@@ -146,7 +229,7 @@ export default function App() {
         {canChange && (
           <Button
             variant={showUpload ? 'secondary' : 'primary'}
-            onClick={() => setParams(showUpload ? {} : { upload: '1' })}
+            onClick={() => narrow({ upload: showUpload ? '' : '1' })}
             aria-expanded={showUpload}
           >
             {showUpload ? 'Hide upload' : 'Upload call'}
@@ -194,15 +277,68 @@ export default function App() {
         </label>
       </div>
 
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="group"
+        aria-label="Narrow by the facts of the call"
+      >
+        <FactSelect
+          label="Campaign"
+          value={narrowing.campaign}
+          values={campaigns.data}
+          onChange={(campaign) => narrow({ campaign, agent: '' })}
+        />
+        <FactSelect
+          label="Agent"
+          value={narrowing.agent}
+          values={agents.data}
+          onChange={(agent) => narrow({ agent })}
+        />
+        <label className="flex items-center gap-2 text-sm text-ink-2">
+          From
+          <input
+            type="date"
+            aria-label="Calls from"
+            className={select}
+            value={narrowing.from}
+            max={narrowing.to || undefined}
+            onChange={(e) => narrow({ from: e.target.value })}
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-ink-2">
+          To
+          <input
+            type="date"
+            aria-label="Calls up to"
+            className={select}
+            value={narrowing.to}
+            min={narrowing.from || undefined}
+            onChange={(e) => narrow({ to: e.target.value })}
+          />
+        </label>
+        {narrowed && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => narrow({ campaign: '', agent: '', from: '', to: '' })}
+          >
+            <X aria-hidden="true" className="size-4" />
+            Clear
+          </Button>
+        )}
+      </div>
+
       <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[960px] text-left text-sm">
           <thead className="text-ink-3">
             <tr>
               <th className="px-6 py-3 font-medium">Recording</th>
               <th className="py-3 pr-4 font-medium">Status</th>
+              <th className="py-3 pr-4 font-medium">Campaign</th>
+              <th className="py-3 pr-4 font-medium">Agent</th>
               <th className="py-3 pr-4 font-medium">Language</th>
               <th className="py-3 pr-4 font-medium">Length</th>
-              <th className="py-3 pr-4 font-medium">Added</th>
+              <th className="py-3 pr-4 font-medium">Call time</th>
               <th className="py-3 pr-6 text-right font-medium">
                 <span className="sr-only">Action</span>
               </th>
@@ -212,14 +348,14 @@ export default function App() {
             {recordings.isPending &&
               [0, 1, 2].map((i) => (
                 <tr key={i} className="animate-pulse border-t border-line">
-                  <td colSpan={6} className="py-4">
+                  <td colSpan={8} className="py-4">
                     <div className="h-4 w-1/2 rounded bg-surface-2" />
                   </td>
                 </tr>
               ))}
             {recordings.isError && (
               <tr>
-                <td colSpan={6} className="py-6 text-center">
+                <td colSpan={8} className="py-6 text-center">
                   <p role="alert">{recordings.error.message}</p>
                   <Button className="mt-3" onClick={() => recordings.refetch()}>
                     Try again
@@ -232,8 +368,8 @@ export default function App() {
             ))}
             {recordings.isSuccess && items.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-10 text-center text-ink-2">
-                  {search || filter !== 'all'
+                <td colSpan={8} className="py-10 text-center text-ink-2">
+                  {search || filter !== 'all' || narrowed
                     ? 'Nothing matches.'
                     : 'No recordings yet. Upload a call to begin.'}
                 </td>

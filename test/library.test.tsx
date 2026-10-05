@@ -20,6 +20,8 @@ const recording = (id: string, name: string, status: string, extra: Record<strin
   latestTranscriptId: '',
   detectedLanguage: 'hi',
   languageProbability: 0.91,
+  attributes: [],
+  callTime: new Date().toISOString(),
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   jobs: [],
@@ -27,6 +29,7 @@ const recording = (id: string, name: string, status: string, extra: Record<strin
 });
 
 const counts = { uploading: 0, uploaded: 0, ready: 1, failed: 1, queued: 0, transcribing: 1, done: 2 };
+const noFacets = { RecordingFacets: () => ({ recordingFacets: [] }) };
 
 function page(client: ReturnType<typeof fakeApi>['client'], path = '/recordings') {
   // EventSource is not in jsdom; the live updates stay quiet in tests.
@@ -51,6 +54,7 @@ describe('the recordings library', () => {
 
   it('lists the calls with their state, language and length', async () => {
     const { client } = fakeApi({
+      ...noFacets,
       Recordings: () => ({
         recordings: {
           items: [
@@ -94,6 +98,7 @@ describe('the recordings library', () => {
 
   it('filters by status and searches by name', async () => {
     const { client, calls } = fakeApi({
+      ...noFacets,
       Recordings: (v) => {
         const filter = (v.filter ?? {}) as { status?: string[]; search?: string };
         const items = filter.search
@@ -122,6 +127,7 @@ describe('the recordings library', () => {
 
   it('shows a viewer the list without the ways to change it', async () => {
     const { client } = fakeApi({
+      ...noFacets,
       Me: () => ({
         me: {
           id: 'usr_2',
@@ -159,6 +165,7 @@ describe('the recordings library', () => {
   it('opens the upload panel from the address and starts a job by hand', async () => {
     const created: string[] = [];
     const { client } = fakeApi({
+      ...noFacets,
       Recordings: () => ({
         recordings: { items: [recording('rec_1', 'waiting.mp3', 'ready')], hasMore: false, endCursor: null },
       }),
@@ -211,6 +218,7 @@ describe('the recordings library', () => {
       ...extra,
     });
     const { client } = fakeApi({
+      ...noFacets,
       Recordings: () => ({ recordings: { items: [], hasMore: false, endCursor: null } }),
       RecordingCounts: () => ({ recordingCounts: counts }),
       Imports: () => ({
@@ -251,6 +259,7 @@ describe('the recordings library', () => {
 
   it('says so when there is nothing yet', async () => {
     const { client } = fakeApi({
+      ...noFacets,
       Recordings: () => ({ recordings: { items: [], hasMore: false, endCursor: null } }),
       RecordingCounts: () => ({
         recordingCounts: { ...counts, ready: 0, failed: 0, transcribing: 0, done: 0 },
@@ -258,5 +267,69 @@ describe('the recordings library', () => {
     });
     page(client);
     expect(await screen.findByText('No recordings yet. Upload a call to begin.')).toBeInTheDocument();
+  });
+
+  it('shows the facts of each call and narrows by campaign, agent and the days', async () => {
+    const { client, calls } = fakeApi({
+      RecordingFacets: (v) =>
+        v.key === 'campaign'
+          ? {
+              recordingFacets: [
+                { value: 'sale', count: 4 },
+                { value: 'support', count: 2 },
+              ],
+            }
+          : { recordingFacets: [{ value: 'agent-x', count: 3 }] },
+      Recordings: () => ({
+        recordings: {
+          items: [
+            recording('rec_1', 'd000-0001.mp3', 'done', {
+              source: 'ameyo',
+              externalId: 'd000-0001',
+              attributes: [
+                { key: 'campaign', value: 'sale' },
+                { key: 'agent', value: 'agent-x' },
+                { key: 'disposition', value: 'sold' },
+              ],
+              callTime: '2026-10-01T09:00:00.000Z',
+            }),
+          ],
+          hasMore: false,
+          endCursor: 'rec_1',
+        },
+      }),
+      RecordingCounts: () => ({ recordingCounts: counts }),
+    });
+    page(client, '/recordings?campaign=sale');
+    const row = (await screen.findByText('d000-0001.mp3')).closest('tr')!;
+    expect(within(row).getByText('sale')).toBeInTheDocument();
+    expect(within(row).getByText('sold')).toBeInTheDocument();
+    expect(within(row).getByText('agent-x')).toBeInTheDocument();
+    // The address narrows the list, and the agent choices follow the campaign.
+    await waitFor(() =>
+      expect(calls.find((c) => c.name === 'Recordings')?.variables).toMatchObject({
+        filter: { campaign: 'sale' },
+      }),
+    );
+    expect(
+      calls.filter((c) => c.name === 'RecordingFacets').find((c) => c.variables.key === 'agent')?.variables,
+    ).toMatchObject({
+      filter: { campaign: 'sale' },
+    });
+
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Agent' }), 'agent-x');
+    await user.type(screen.getByLabelText('Calls from'), '2026-09-28');
+    await waitFor(() =>
+      expect(calls.filter((c) => c.name === 'Recordings').at(-1)?.variables).toMatchObject({
+        filter: { campaign: 'sale', agent: 'agent-x', since: new Date('2026-09-28T00:00:00').toISOString() },
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await waitFor(() =>
+      expect(calls.filter((c) => c.name === 'Recordings').at(-1)?.variables.filter).not.toHaveProperty(
+        'campaign',
+      ),
+    );
   });
 });
