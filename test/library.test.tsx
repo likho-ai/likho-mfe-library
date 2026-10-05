@@ -120,6 +120,42 @@ describe('the recordings library', () => {
     );
   });
 
+  it('shows a viewer the list without the ways to change it', async () => {
+    const { client } = fakeApi({
+      Me: () => ({
+        me: {
+          id: 'usr_2',
+          email: 'v@example.test',
+          name: 'Vee',
+          role: 'viewer',
+          workspace: { id: 'wsp_1', name: 'W' },
+        },
+      }),
+      Recordings: () => ({
+        recordings: {
+          items: [
+            recording('rec_1', 'waiting.mp3', 'ready'),
+            recording('rec_2', 'later.mp3', 'queued', {
+              jobs: [{ id: 'job_1', status: 'queued', progressSeconds: 0, totalSeconds: 0 }],
+            }),
+          ],
+          hasMore: false,
+          endCursor: null,
+        },
+      }),
+      RecordingCounts: () => ({ recordingCounts: counts }),
+    });
+    page(client, '/recordings?upload=1');
+    expect(await screen.findByText('waiting.mp3')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Upload call' })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole('button', { name: 'Hide upload' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Transcribe' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Upload calls')).not.toBeInTheDocument();
+  });
+
   it('opens the upload panel from the address and starts a job by hand', async () => {
     const created: string[] = [];
     const { client } = fakeApi({

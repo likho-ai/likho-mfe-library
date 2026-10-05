@@ -6,6 +6,7 @@ import { Button, StatusChip } from '@likho-ai/ui';
 import {
   useCancelJob,
   useCreateJob,
+  useMe,
   useRecordingCounts,
   useRecordings,
   useUploader,
@@ -33,10 +34,13 @@ const FILTERS: { key: Filter; label: string; statuses?: RecordingStatus[] }[] = 
 
 function Row({
   recording,
+  canChange,
 }: {
   recording: Recording & {
     jobs: { id: string; status: string; progressSeconds: number; totalSeconds: number }[];
   };
+  /** A viewer reads: no Transcribe, no Cancel. */
+  canChange: boolean;
 }) {
   const createJob = useCreateJob();
   const cancelJob = useCancelJob();
@@ -88,12 +92,12 @@ function Row({
             <Link to={`/recordings/${recording.id}`}>Watch live</Link>
           </Button>
         )}
-        {recording.status === 'queued' && running && (
+        {canChange && recording.status === 'queued' && running && (
           <Button size="sm" variant="ghost" onClick={() => cancelJob.mutate({ id: running.id })}>
             Cancel
           </Button>
         )}
-        {(recording.status === 'ready' || recording.status === 'failed') && recording.status !== 'failed' && (
+        {canChange && recording.status === 'ready' && (
           <Button size="sm" variant="primary" onClick={() => createJob.mutate({ recordingId: recording.id })}>
             Transcribe
           </Button>
@@ -113,7 +117,10 @@ export default function App() {
   const counts = useRecordingCounts();
   const uploader = useUploader();
   const live = useWorkspaceLive();
-  const showUpload = params.get('upload') === '1';
+  const me = useMe();
+  // A viewer reads, plays and searches; the ways to change things are not shown to them.
+  const canChange = me.data?.role !== 'viewer';
+  const showUpload = canChange && params.get('upload') === '1';
 
   const items = recordings.data?.pages.flatMap((page) => page.items) ?? [];
   const total = counts.data ? Object.values(counts.data).reduce((a, b) => a + b, 0) : null;
@@ -136,13 +143,15 @@ export default function App() {
             )}
           </p>
         </div>
-        <Button
-          variant={showUpload ? 'secondary' : 'primary'}
-          onClick={() => setParams(showUpload ? {} : { upload: '1' })}
-          aria-expanded={showUpload}
-        >
-          {showUpload ? 'Hide upload' : 'Upload call'}
-        </Button>
+        {canChange && (
+          <Button
+            variant={showUpload ? 'secondary' : 'primary'}
+            onClick={() => setParams(showUpload ? {} : { upload: '1' })}
+            aria-expanded={showUpload}
+          >
+            {showUpload ? 'Hide upload' : 'Upload call'}
+          </Button>
+        )}
       </div>
 
       {showUpload && (
@@ -219,7 +228,7 @@ export default function App() {
               </tr>
             )}
             {items.map((recording) => (
-              <Row key={recording.id} recording={recording} />
+              <Row key={recording.id} recording={recording} canChange={canChange} />
             ))}
             {recordings.isSuccess && items.length === 0 && (
               <tr>
