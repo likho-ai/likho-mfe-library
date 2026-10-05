@@ -12,8 +12,8 @@ importers:
         specifier: https://github.com/likho-ai/likho-ui/releases/download/v0.1.0/likho-ai-ui-0.1.0.tgz
         version: https://github.com/likho-ai/likho-ui/releases/download/v0.1.0/likho-ai-ui-0.1.0.tgz(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@likho-ai/web-sdk':
-        specifier: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz
-        version: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz(@tanstack/react-query@5.104.1(react@19.3.0))(react@19.3.0)
+        specifier: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.3.1/likho-ai-web-sdk-0.3.1.tgz
+        version: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.3.1/likho-ai-web-sdk-0.3.1.tgz(@tanstack/react-query@5.104.1(react@19.3.0))(react@19.3.0)
       '@tanstack/react-query':
         specifier: ^5.104.1
         version: 5.104.1(react@19.3.0)
@@ -316,9 +316,9 @@ packages:
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  '@likho-ai/web-sdk@https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz':
-    resolution: {integrity: sha512-TOfM86JicNf8/M1zYW3kJjOFb9L3whg+JEclcbRSnKFWxhgQF7DGqL482pRENtfNO4EVeI6+aXp6PGL6zmlZ9A==, tarball: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz}
-    version: 0.2.0
+  '@likho-ai/web-sdk@https://github.com/likho-ai/likho-web-sdk/releases/download/v0.3.1/likho-ai-web-sdk-0.3.1.tgz':
+    resolution: {integrity: sha512-EjpAYQsYrQdSxJ8NjpPRrIFM2mxIrcTu0B0qN1/8qrj1+2OX+x5zvXYbsxJ/Lfc5hsFI+xi6yszHGoPaB9fZuw==, tarball: https://github.com/likho-ai/likho-web-sdk/releases/download/v0.3.1/likho-ai-web-sdk-0.3.1.tgz}
+    version: 0.3.1
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       react: ^19.0.0
@@ -1983,7 +1983,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@likho-ai/web-sdk@https://github.com/likho-ai/likho-web-sdk/releases/download/v0.2.0/likho-ai-web-sdk-0.2.0.tgz(@tanstack/react-query@5.104.1(react@19.3.0))(react@19.3.0)':
+  '@likho-ai/web-sdk@https://github.com/likho-ai/likho-web-sdk/releases/download/v0.3.1/likho-ai-web-sdk-0.3.1.tgz(@tanstack/react-query@5.104.1(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.2)
       '@tanstack/react-query': 5.104.1(react@19.3.0)
