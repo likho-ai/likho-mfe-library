@@ -9,9 +9,12 @@ React 19, Vite 8, Tailwind CSS v4 with the likho-ui tokens, likho-web-sdk.
 
 ## What it does
 
-- Lists recordings newest first, page by page, with status chips, language and probability,
-  length and age. The list stays current while the page is open (server-sent events).
-- Filters by status, searches by file name or external id.
+- Lists recordings newest first, page by page, with status chips, the facts of the call (campaign
+  and disposition, agent, when the call was made), language and probability, and length. The list
+  stays current while the page is open (server-sent events).
+- Filters by status, searches by file name or external id, and narrows by campaign, agent and the
+  days of the calls (the values with their counts come from likho-api; the choice is in the
+  address, so a narrowed library can be shared).
 - Uploads: several files at once with per-file progress; a file whose content is already there
   points at the earlier upload; a recording made from the microphone is uploaded like a file.
 - Starts a job by hand (when auto-transcribe is off), cancels a queued one.
