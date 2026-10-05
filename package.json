@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@likho-ai/ui": "https://github.com/likho-ai/likho-ui/releases/download/v0.1.0/likho-ai-ui-0.1.0.tgz",
-    "@likho-ai/web-sdk": "https://github.com/likho-ai/likho-web-sdk/releases/download/v0.6.0/likho-ai-web-sdk-0.6.0.tgz",
+    "@likho-ai/web-sdk": "https://github.com/likho-ai/likho-web-sdk/releases/download/v0.7.1/likho-ai-web-sdk-0.7.1.tgz",
     "@tanstack/react-query": "^5.104.1",
     "graphql": "^16.11.0",
     "lucide-react": "^1.51.0",
