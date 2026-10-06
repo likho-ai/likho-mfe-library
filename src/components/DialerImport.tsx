@@ -34,7 +34,8 @@ export function DialerImport() {
         From the dialer
       </h2>
       <p className="mt-1 text-sm text-ink-2">
-        Paste a call id (its <code>crt_object_id</code>); the recording is fetched and transcribed.
+        Paste a call id from a report (<code>…-vcall-…</code>) or its interaction id, the CRT (
+        <code>…-vce-…</code>); the recording is fetched and transcribed.
       </p>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row" aria-label="Fetch a call">
         <label className="flex-1">
