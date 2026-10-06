@@ -332,4 +332,99 @@ describe('the recordings library', () => {
       ),
     );
   });
+
+  it('browses the dialer’s calls by its own campaigns and agents, and fetches the ticked ones', async () => {
+    const dialerCall = (crt: string, extra: Record<string, unknown> = {}) => ({
+      crtObjectId: crt,
+      callId: `c-${crt}`,
+      callTime: '2026-10-02 10:56:04',
+      campaign: 'Sales',
+      transferredCampaign: '',
+      agent: 'asha',
+      agentId: 'u1',
+      disposition: 'Sale',
+      callType: 'inbound.call.dial',
+      connected: true,
+      talkSeconds: 95,
+      phone: '…3210',
+      hangupBy: 'customer',
+      queue: '',
+      recordingId: null,
+      recordingStatus: null,
+      ...extra,
+    });
+    const asked: string[][] = [];
+    const { client, calls } = fakeApi({
+      ...noFacets,
+      Recordings: () => ({ recordings: { items: [], hasMore: false, endCursor: null } }),
+      RecordingCounts: () => ({ recordingCounts: counts }),
+      DialerCampaigns: () => ({
+        dialerCampaigns: [
+          { name: 'Sales', calls: 900, connected: 700, interactions: 880, talkSeconds: 90000 },
+        ],
+      }),
+      DialerAgents: (v) => ({
+        dialerAgents:
+          v.campaign === 'Sales'
+            ? [{ id: 'u1', name: 'asha', calls: 40, connected: 30, talkSeconds: 3000 }]
+            : [],
+      }),
+      DialerCalls: () => ({
+        dialerCalls: {
+          items: [
+            dialerCall('crt-1'),
+            dialerCall('crt-2', { recordingId: 'rec_9', recordingStatus: 'done' }),
+            dialerCall('crt-3', { transferredCampaign: 'Sales_Team' }),
+          ],
+          nextCursor: null,
+        },
+      }),
+      RequestImports: (v) => {
+        asked.push(v.externalIds as string[]);
+        return {
+          requestImports: (v.externalIds as string[]).map((id, i) => ({
+            id: `imp_${i}`,
+            externalId: id,
+            status: 'requested',
+          })),
+        };
+      },
+    });
+    page(client, '/recordings?dialer=1');
+    const section = await screen.findByRole('region', { name: 'The dialer’s calls' });
+    const user = userEvent.setup();
+    const campaign = within(section).getByLabelText('Campaign');
+    await waitFor(() =>
+      expect(
+        within(campaign).getByRole('option', { name: 'Sales (700 of 900 connected)' }),
+      ).toBeInTheDocument(),
+    );
+    await user.selectOptions(campaign, 'Sales');
+    const agent = within(section).getByLabelText('Agent');
+    await waitFor(() => expect(within(agent).getByRole('option', { name: 'asha (40)' })).toBeInTheDocument());
+    await user.selectOptions(agent, 'asha');
+    await waitFor(() =>
+      expect(calls.filter((c) => c.name === 'DialerCalls').at(-1)!.variables.filter).toMatchObject({
+        campaign: 'Sales',
+        agent: 'asha',
+        connectedOnly: true,
+        minTalkSeconds: 20,
+      }),
+    );
+
+    const table = within(section).getByRole('table', { name: 'The dialer’s calls' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(3);
+    expect(within(rows[1]!).getByRole('link', { name: 'Open transcript' })).toHaveAttribute(
+      'href',
+      '/recordings/rec_9',
+    );
+    expect(within(rows[1]!).queryByRole('checkbox')).not.toBeInTheDocument(); // already in Likho
+    expect(rows[2]).toHaveTextContent('→ Sales_Team');
+
+    await user.click(within(table).getByLabelText('Tick every call not in Likho'));
+    await user.click(within(section).getByRole('button', { name: 'Fetch 2 ticked' }));
+    await waitFor(() => expect(asked).toEqual([['crt-1', 'crt-3']]));
+    expect(await within(section).findByRole('status')).toHaveTextContent('2 calls asked for');
+  });
 });

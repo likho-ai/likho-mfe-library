@@ -20,6 +20,7 @@ import {
 import { Search, X } from 'lucide-react';
 import { useDeferredValue, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { DialerCalls } from './components/DialerCalls';
 import { DialerImport } from './components/DialerImport';
 import { UploadPanel } from './components/UploadPanel';
 import { CHIP, clock, languageName, when } from './lib/format';
@@ -195,8 +196,9 @@ export default function App() {
   // A viewer reads, plays and searches; the ways to change things are not shown to them.
   const canChange = me.data?.role !== 'viewer';
   const showUpload = canChange && params.get('upload') === '1';
+  const showDialer = canChange && params.get('dialer') === '1';
 
-  const narrow = (next: Partial<typeof narrowing> & { upload?: string }) => {
+  const narrow = (next: Partial<typeof narrowing> & { upload?: string; dialer?: string }) => {
     const fresh = new URLSearchParams(params);
     for (const [key, value] of Object.entries({ ...narrowing, ...next })) {
       if (value) fresh.set(key, value);
@@ -227,13 +229,22 @@ export default function App() {
           </p>
         </div>
         {canChange && (
-          <Button
-            variant={showUpload ? 'secondary' : 'primary'}
-            onClick={() => narrow({ upload: showUpload ? '' : '1' })}
-            aria-expanded={showUpload}
-          >
-            {showUpload ? 'Hide upload' : 'Upload call'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={showDialer ? 'secondary' : 'ghost'}
+              onClick={() => narrow({ dialer: showDialer ? '' : '1' })}
+              aria-expanded={showDialer}
+            >
+              {showDialer ? 'Hide the dialer' : 'Browse the dialer'}
+            </Button>
+            <Button
+              variant={showUpload ? 'secondary' : 'primary'}
+              onClick={() => narrow({ upload: showUpload ? '' : '1' })}
+              aria-expanded={showUpload}
+            >
+              {showUpload ? 'Hide upload' : 'Upload call'}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -243,6 +254,7 @@ export default function App() {
           <DialerImport />
         </>
       )}
+      {showDialer && canChange && <DialerCalls />}
 
       <div className="flex flex-wrap items-center gap-2">
         <div role="group" aria-label="Filter by status" className="flex flex-wrap gap-1">
