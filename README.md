@@ -23,7 +23,7 @@ React 19, Vite 8, Tailwind CSS v4 with the likho-ui tokens, likho-web-sdk.
 
 ```bash
 pnpm install
-pnpm dev            # http://localhost:5174/mfe/library/ on its own, against the gateway's API
+pnpm dev            # http://localhost:5274/mfe/library/ on its own, against the gateway's API
 ```
 
 In the product the shell loads `/mfe/library/remoteEntry.js`; `pnpm dev` here plus `pnpm dev` in the

@@ -29,11 +29,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5174,
+    port: 5274,
     strictPort: true,
     // Listens on every interface so the gateway container reaches it through the host address.
     host: '0.0.0.0',
-    origin: 'http://localhost:5174',
+    origin: 'http://localhost:5274',
     allowedHosts: ['localhost', 'host.docker.internal'],
   },
   build: { target: 'es2022' },
