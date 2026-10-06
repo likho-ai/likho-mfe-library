@@ -110,6 +110,7 @@ export function DialerCalls() {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-ink-2">Campaign</span>
           <select
+            aria-label="Campaign"
             className={control}
             value={campaign}
             onChange={(e) => {
@@ -127,7 +128,7 @@ export function DialerCalls() {
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-ink-2">Agent</span>
-          <select className={control} value={agent} onChange={(e) => setAgent(e.target.value)}>
+          <select aria-label="Agent" className={control} value={agent} onChange={(e) => setAgent(e.target.value)}>
             <option value="">Any agent</option>
             {(agents.data ?? []).map((a) => (
               <option key={a.name} value={a.name}>
